@@ -6,8 +6,8 @@
 using CppAD::AD;
 
 // TODO: Set the timestep length and duration
-size_t N = 20;
-double dt = .03;
+size_t N = 50;
+double dt = .01;
 
 // This value assumes the model presented in the classroom is used.
 //
@@ -20,7 +20,7 @@ double dt = .03;
 //
 // This is the length from front to CoG that has a similar radius.
 const double Lf = 2.67;
-const double ref_v = 8;
+const double ref_v = 10;
 
 size_t x_start = 0;
 size_t y_start = x_start + N;
@@ -54,22 +54,21 @@ class FG_eval {
     for (int t = 0; t < N; t++) {
       fg[0] += CppAD::pow(vars[cte_start + t], 2);
       fg[0] += CppAD::pow(vars[epsi_start + t], 2);
-      fg[0] += CppAD::pow(vars[v_start + t] - ref_v, 2);
+      fg[0] += 50* CppAD::pow(vars[v_start + t] - ref_v, 2);
     }
 
     // Minimize the use of actuators.
     for (int t = 0; t < N - 1; t++) {
-      fg[0] += CppAD::pow(vars[delta_start + t], 2);
+      fg[0] += 10* CppAD::pow(vars[delta_start + t], 2);
       fg[0] += CppAD::pow(vars[a_start + t], 2);
     }
 
     // Minimize the value gap between sequential actuations.
     for (int t = 0; t < N - 2; t++) {
-      fg[0] += CppAD::pow(vars[delta_start + t + 1] - vars[delta_start + t], 2);
-      fg[0] += CppAD::pow(vars[a_start + t + 1] - vars[a_start + t], 2);
+      fg[0] += 5 * CppAD::pow(vars[delta_start + t + 1] - vars[delta_start + t], 2);
+      fg[0] +=   5 *   CppAD::pow(vars[a_start + t + 1] - vars[a_start + t], 2);
     }
 
-    //
     // Setup Constraints
     //
     // NOTE: In this section you'll setup the model constraints.
@@ -105,8 +104,8 @@ class FG_eval {
       AD<double> delta0 = vars[delta_start + t - 1]; 
       AD<double> a0 = vars[a_start + t - 1];
 
-      AD<double> f0 = coeffs[0] + coeffs[1] * x0;
-      AD<double> psides0 = CppAD::atan(coeffs[1]);     
+      AD<double> f0 = coeffs[0] + coeffs[1] * x0 + coeffs[2] * pow(x0,2) + coeffs[3] * pow(x0,3);
+      AD<double> psides0 = CppAD::atan(coeffs(1)+ 2 * coeffs(2) * x0 + 3 * coeffs(3) * pow(x0,2) );     
       // Here's `x` to get you started.
       // The idea here is to constraint this value to be 0.
       //
@@ -124,7 +123,7 @@ class FG_eval {
 
       // what is f( x(t) )?
       // how to we get desired steering angle
-      fg[1 + cte_start + t]  = cte1 - ( f0 - y0 + v0 * CppAD::sin(epsi0) * dt);
+      fg[1 + cte_start + t]  = cte1 - ( y0 - f0 + v0 * CppAD::sin(epsi0) * dt);
       fg[1 + epsi_start + t] = epsi1 - ( psi0 - psides0 + (v0 / Lf) * delta0 * dt  );
     }
 
@@ -254,7 +253,7 @@ vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
 
   // Cost
   auto cost = solution.obj_value;
-  //std::cout << "Cost " << cost << std::endl;
+  std::cout << "Cost " << cost << std::endl;
 
   // TODO: Return the first actuator values. The variables can be accessed with
   // `solution.x[i]`.

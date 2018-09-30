@@ -13,7 +13,7 @@
 // for convenience
 using json = nlohmann::json;
 
-size_t iters = 30;
+size_t iters = 1;
 
 // For converting back and forth between radians and degrees.
 constexpr double pi() { return M_PI; }
@@ -114,11 +114,14 @@ int main() {
           cout<< "pts_y" << pts_y <<endl;
           */
           
-          auto coeffs = polyfit(pts_x, pts_y, 1);
+          auto coeffs = polyfit(pts_x, pts_y, 3);
 
-          double cte  = polyeval(coeffs,px) - py ;  
-          double epsi = psi - atan( coeffs(1)  );
+          double cte  = polyeval(coeffs,px) - py ; 
 
+          //cout<< "HERREE" <<endl; 
+          double epsi = psi - atan( coeffs(1)+ 2 * coeffs(2) * px + 3 * coeffs(3) * px * px  );
+
+         // cout<< "AFTER" <<endl;
           Eigen::VectorXd state(6);
           state << px, py, psi, v, cte, epsi;
 
@@ -130,10 +133,6 @@ int main() {
           */
           auto control = mpc.Solve(state, coeffs);            
           
-          for (size_t i = 0; i < iters; i++) {
-            control = mpc.Solve(state, coeffs);            
-          }
-
           double steer_value = control[0];
           double throttle_value = control[1];
 
@@ -156,12 +155,7 @@ int main() {
           //Display the waypoints/reference line
 
           vector<double> next_x_vals;
-          vector<double> next_y_vals;
-
-          for (size_t i = 0; i < iters; i++) {
-          next_x_vals.push_back((double)i);
-          next_y_vals.push_back(0.0);           
-          }
+          vector<double> next_y_vals;          
 
           //.. add (x,y) points to list here, points are in reference to the vehicle's coordinate system
           // the points in the simulator are connected by a Yellow line
