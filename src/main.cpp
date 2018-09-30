@@ -9,8 +9,11 @@
 #include "MPC.h"
 #include "json.hpp"
 
+#define PI 3.141592653
 // for convenience
 using json = nlohmann::json;
+
+size_t iters = 30;
 
 // For converting back and forth between radians and degrees.
 constexpr double pi() { return M_PI; }
@@ -87,6 +90,7 @@ int main() {
           // j[1] is the data JSON object
           vector<double> ptsx = j[1]["ptsx"];
           vector<double> ptsy = j[1]["ptsy"];
+
           Eigen::VectorXd pts_x(6);
           Eigen::VectorXd pts_y(6);
 
@@ -97,15 +101,23 @@ int main() {
           double py = j[1]["y"];
           double psi = j[1]["psi"];
           double v = j[1]["speed"];
-
+          
+          /*
+          psi -= PI / 2.0;
+          if      (psi < -.43632){ psi = -.43632;  }
+          else if (psi >  .43632){ psi =  .43632;  }
+          */
+          /*
           cout << "LENGTH OF ptsx: " << ptsx.size() << endl;
           cout << "LENGTH OF ptsy: " << ptsy.size() << endl;
           cout<< "pts_x" << pts_x<<endl;
           cout<< "pts_y" << pts_y <<endl;
+          */
+          
           auto coeffs = polyfit(pts_x, pts_y, 1);
 
           double cte  = polyeval(coeffs,px) - py ;  
-          double epsi = psi - atan( coeffs(1) );
+          double epsi = psi - atan( coeffs(1)  );
 
           Eigen::VectorXd state(6);
           state << px, py, psi, v, cte, epsi;
@@ -116,7 +128,11 @@ int main() {
           * Both are in between [-1, 1].
           *
           */
-          auto control = mpc.Solve(state, coeffs);
+          auto control = mpc.Solve(state, coeffs);            
+          
+          for (size_t i = 0; i < iters; i++) {
+            control = mpc.Solve(state, coeffs);            
+          }
 
           double steer_value = control[0];
           double throttle_value = control[1];
@@ -138,8 +154,14 @@ int main() {
           msgJson["mpc_y"] = mpc_y_vals;
 
           //Display the waypoints/reference line
+
           vector<double> next_x_vals;
           vector<double> next_y_vals;
+
+          for (size_t i = 0; i < iters; i++) {
+          next_x_vals.push_back((double)i);
+          next_y_vals.push_back(0.0);           
+          }
 
           //.. add (x,y) points to list here, points are in reference to the vehicle's coordinate system
           // the points in the simulator are connected by a Yellow line
