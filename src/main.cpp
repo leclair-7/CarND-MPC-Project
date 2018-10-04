@@ -9,7 +9,7 @@
 #include "MPC.h"
 #include "json.hpp"
 
-#define PI 3.141592653
+#define PI 3.141592
 // for convenience
 using json = nlohmann::json;
 
@@ -90,17 +90,29 @@ int main() {
           // j[1] is the data JSON object
           vector<double> ptsx = j[1]["ptsx"];
           vector<double> ptsy = j[1]["ptsy"];
+          double px = j[1]["x"];
+          double py = j[1]["y"];
+          double psi = j[1]["psi"];
+          double v = j[1]["speed"];
+          
+
+          vector<double> ptsx_veh;
+          vector<double> ptsy_veh;
+
+          for(int i=0; i < ptsx.size(); i++){
+              double pvx = ptsx[i] - px;
+              double pvy = ptsy[i] - py;
+              ptsx_veh.push_back( pvx );
+              ptsy_veh.push_back( pvy );
+              
+          }
+
 
           Eigen::VectorXd pts_x(6);
           Eigen::VectorXd pts_y(6);
 
           pts_x << ptsx[0], ptsx[1], ptsx[2], ptsx[3], ptsx[4], ptsx[5];
           pts_y << ptsy[0], ptsy[1], ptsy[2], ptsy[3], ptsy[4], ptsy[5];
-          
-          double px = j[1]["x"];
-          double py = j[1]["y"];
-          double psi = j[1]["psi"];
-          double v = j[1]["speed"];
           
           /*
           psi -= PI / 2.0;
@@ -118,8 +130,10 @@ int main() {
 
           double cte  = polyeval(coeffs,px) - py ; 
 
-          //cout<< "HERREE" <<endl; 
           double epsi = psi - atan( coeffs(1)+ 2 * coeffs(2) * px + 3 * coeffs(3) * px * px  );
+
+         // cout<< "Rudiments" << endl;
+          //cout<< cte << "\t" << epsi << "\t" <<coeffs <<endl;
 
          // cout<< "AFTER" <<endl;
           Eigen::VectorXd state(6);
@@ -165,7 +179,7 @@ int main() {
 
 
           auto msg = "42[\"steer\"," + msgJson.dump() + "]";
-          std::cout << msg << std::endl;
+          //std::cout << msg << std::endl;
           // Latency
           // The purpose is to mimic real driving conditions where
           // the car does actuate the commands instantly.
@@ -175,7 +189,7 @@ int main() {
           //
           // NOTE: REMEMBER TO SET THIS TO 100 MILLISECONDS BEFORE
           // SUBMITTING.
-          this_thread::sleep_for(chrono::milliseconds(100));
+          //this_thread::sleep_for(chrono::milliseconds(100));
           ws.send(msg.data(), msg.length(), uWS::OpCode::TEXT);
         }
       } else {
