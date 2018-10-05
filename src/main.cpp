@@ -98,21 +98,28 @@ int main() {
 
           vector<double> ptsx_veh;
           vector<double> ptsy_veh;
+          
+          double cospsi = cos(-psi);
+          double sinpsi = sin(-psi);
 
-          for(int i=0; i < ptsx.size(); i++){
+          for(size_t i=0; i < ptsx.size(); i++){
               double pvx = ptsx[i] - px;
               double pvy = ptsy[i] - py;
-              ptsx_veh.push_back( pvx );
-              ptsy_veh.push_back( pvy );
-              
+
+              double pvx_and_angle = pvx * cospsi - pvy * sinpsi;
+              double pvy_and_angle = pvy * cospsi + pvx * sinpsi;
+
+              ptsx_veh.push_back( pvx_and_angle );
+              ptsy_veh.push_back( pvy_and_angle );
+              // do we need to do something with psi
           }
 
 
           Eigen::VectorXd pts_x(6);
           Eigen::VectorXd pts_y(6);
 
-          pts_x << ptsx[0], ptsx[1], ptsx[2], ptsx[3], ptsx[4], ptsx[5];
-          pts_y << ptsy[0], ptsy[1], ptsy[2], ptsy[3], ptsy[4], ptsy[5];
+          pts_x << ptsx_veh[0], ptsx_veh[1], ptsx_veh[2], ptsx_veh[3], ptsx_veh[4], ptsx_veh[5];
+          pts_y << ptsy_veh[0], ptsy_veh[1], ptsy_veh[2], ptsy_veh[3], ptsy_veh[4], ptsy_veh[5];
           
           /*
           psi -= PI / 2.0;
@@ -128,16 +135,15 @@ int main() {
           
           auto coeffs = polyfit(pts_x, pts_y, 3);
 
-          double cte  = polyeval(coeffs,px) - py ; 
-
-          double epsi = psi - atan( coeffs(1)+ 2 * coeffs(2) * px + 3 * coeffs(3) * px * px  );
+          double cte = polyeval(coeffs, 0);  // px = 0, py = 0
+          double epsi = -atan(coeffs[1]); // p
 
          // cout<< "Rudiments" << endl;
           //cout<< cte << "\t" << epsi << "\t" <<coeffs <<endl;
 
          // cout<< "AFTER" <<endl;
           Eigen::VectorXd state(6);
-          state << px, py, psi, v, cte, epsi;
+          state << 0,0,0, v, cte, epsi;
 
           /*
           * TODO: Calculate steering angle and throttle using MPC.
@@ -145,10 +151,10 @@ int main() {
           * Both are in between [-1, 1].
           *
           */
-          auto control = mpc.Solve(state, coeffs);            
+          auto vars = mpc.Solve(state, coeffs);            
           
-          double steer_value = control[0];
-          double throttle_value = control[1];
+          double steer_value = vars[0] /  (deg2rad(25));
+          double throttle_value = vars[1];
 
           json msgJson;
           // NOTE: Remember to divide by deg2rad(25) before you send the steering value back.
@@ -162,24 +168,38 @@ int main() {
 
           //.. add (x,y) points to list here, points are in reference to the vehicle's coordinate system
           // the points in the simulator are connected by a Green line
+          //cout<< "SIZE OF VARS " << vars.size() << endl;
+          
+          for (int i = 2; i < vars.size(); i ++) {
+            if (i%2 == 0) {
+              mpc_x_vals.push_back(vars[i]);
+            }
+            else {
+              mpc_y_vals.push_back(vars[i]);
+            }
+          }
 
           msgJson["mpc_x"] = mpc_x_vals;
           msgJson["mpc_y"] = mpc_y_vals;
 
           //Display the waypoints/reference line
-
           vector<double> next_x_vals;
-          vector<double> next_y_vals;          
+          vector<double> next_y_vals;
 
           //.. add (x,y) points to list here, points are in reference to the vehicle's coordinate system
           // the points in the simulator are connected by a Yellow line
+
+          for (double i = 0; i < 25; i += 3){
+            next_x_vals.push_back(i);
+            next_y_vals.push_back(polyeval(coeffs, i));
+          }
 
           msgJson["next_x"] = next_x_vals;
           msgJson["next_y"] = next_y_vals;
 
 
           auto msg = "42[\"steer\"," + msgJson.dump() + "]";
-          //std::cout << msg << std::endl;
+          std::cout << msg << std::endl;
           // Latency
           // The purpose is to mimic real driving conditions where
           // the car does actuate the commands instantly.
@@ -189,7 +209,7 @@ int main() {
           //
           // NOTE: REMEMBER TO SET THIS TO 100 MILLISECONDS BEFORE
           // SUBMITTING.
-          //this_thread::sleep_for(chrono::milliseconds(100));
+          this_thread::sleep_for(chrono::milliseconds(100));
           ws.send(msg.data(), msg.length(), uWS::OpCode::TEXT);
         }
       } else {

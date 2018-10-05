@@ -31,10 +31,10 @@ size_t epsi_start  = cte_start + N;
 size_t delta_start = epsi_start + N;
 size_t a_start     = delta_start + N - 1;
 
-const double steer_weight    = 200000;
-const double steer_succesive = 100;
-const double cte_weight      = 1000;
-const double epsi_weight     = 900;
+const double steer_weight    = 1000;
+const double steer_succesive = 500;
+const double cte_weight      = 1;
+const double epsi_weight     = 500;
 const double velo_weight     = 10000;
 class FG_eval {
  public:
@@ -267,5 +267,13 @@ vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
   // creates a 2 element double vector.
   
   //{.436,.5};//
-  return {solution.x[delta_start],   solution.x[a_start]};
+
+  vector <double> sol_n;
+  for( size_t i = 0; i < N - 1; i ++){
+
+    sol_n.push_back(solution.x[delta_start + i]);
+    sol_n.push_back(solution.x[a_start     + i]);
+  }
+
+  return sol_n; //{solution.x[delta_start],   solution.x[a_start]};
 }
