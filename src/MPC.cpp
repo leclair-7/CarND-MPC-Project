@@ -5,12 +5,12 @@
 
 using CppAD::AD;
 
-// TODO: Set the timestep length and duration
+// Timestep length and duration
 size_t N = 15;
 double dt = .05;
 
 // This value assumes the model presented in the classroom is used.
-//d
+//
 // It was obtained by measuring the radius formed by running the vehicle in the
 // simulator around in a circle with a constant steering angle and velocity on a
 // flat terrain.
@@ -19,8 +19,8 @@ double dt = .05;
 // presented in the classroom matched the previous radius.
 //
 // This is the length from front to CoG that has a similar radius.
-const double Lf = 2.67;
-const double ref_v = 25;
+const double Lf    = 2.67;
+const double ref_v = 45;
 
 size_t x_start     = 0;
 size_t y_start     = x_start + N;
@@ -28,6 +28,7 @@ size_t psi_start   = y_start + N;
 size_t v_start     = psi_start + N;
 size_t cte_start   = v_start + N;
 size_t epsi_start  = cte_start + N;
+
 size_t delta_start = epsi_start + N;
 size_t a_start     = delta_start + N - 1;
 
@@ -36,48 +37,47 @@ const double steer_succesive = 500;
 const double cte_weight      = 1;
 const double epsi_weight     = 500;
 const double velo_weight     = 10000;
+
 class FG_eval {
+
  public:
+  
   // Fitted polynomial coefficients
   Eigen::VectorXd coeffs;
+
   FG_eval(Eigen::VectorXd coeffs) { this->coeffs = coeffs; }
+
   typedef CPPAD_TESTVECTOR(AD<double>) ADvector;
 
-
   void operator()(ADvector& fg, const ADvector& vars) {
-    // TODO: implement MPC
     // `fg` a vector of the cost constraints, `vars` is a vector of variable values (state & actuators)
     // NOTE: You'll probably go back and forth between this function and
     // the Solver function below.
     fg[0] = 0;
 
     // Reference State Cost
-    // TODO: Define the cost related the reference state and
-    // any anything you think may be beneficial.
     
-    // The part of the cost based on the reference state.
+    // Cost based on the reference state.
     for (int t = 0; t < N; t++) {
-      fg[0] +=  cte_weight * CppAD::pow(vars[cte_start + t], 2);
+      fg[0] +=  cte_weight  * CppAD::pow(vars[cte_start + t], 2);
       fg[0] +=  epsi_weight * CppAD::pow(vars[epsi_start + t], 2);
-      fg[0] +=  velo_weight *CppAD::pow(vars[v_start + t] - ref_v, 2);
+      fg[0] +=  velo_weight * CppAD::pow(vars[v_start + t] - ref_v, 2);
     }
 
     // Minimize the use of actuators.
     for (int t = 0; t < N - 1; t++) {
-      fg[0] +=  steer_weight*CppAD::pow(vars[delta_start + t], 2);
-      fg[0] +=  CppAD::pow(vars[a_start + t], 2);
+      fg[0] +=  steer_weight * CppAD::pow(vars[delta_start + t], 2);
+      fg[0] +=                 CppAD::pow(vars[a_start + t], 2);
     }
 
     // Minimize the value gap between sequential actuations.
     for (int t = 0; t < N - 2; t++) {
       fg[0] +=  steer_succesive * CppAD::pow(vars[delta_start + t + 1] - vars[delta_start + t], 2);
-      fg[0] +=      CppAD::pow(vars[a_start + t + 1] - vars[a_start + t], 2);
+      fg[0] +=                    CppAD::pow(vars[a_start + t + 1] - vars[a_start + t], 2);
     }
 
     // Setup Constraints
-    //
-    // NOTE: In this section you'll setup the model constraints.
-
+    
     // Initial constraints
     //
     // We add 1 to each of the starting indices due to cost being located at
@@ -99,36 +99,42 @@ class FG_eval {
       AD<double> cte1  = vars[cte_start  + t];
       AD<double> epsi1 = vars[epsi_start + t];
 
-
-      AD<double> x0      = vars[x_start + t    - 1];
-      AD<double> y0      = vars[y_start + t    - 1];
-      AD<double> psi0    = vars[psi_start + t  - 1];
-      AD<double> v0      = vars[v_start + t    - 1];
-      AD<double> cte0    = vars[cte_start + t  - 1];
-      AD<double> epsi0   = vars[epsi_start + t - 1];
+      AD<double> x0      = vars[x_start    + t  - 1];
+      AD<double> y0      = vars[y_start    + t  - 1];
+      AD<double> psi0    = vars[psi_start  + t  - 1];
+      AD<double> v0      = vars[v_start    + t  - 1];
+      AD<double> cte0    = vars[cte_start  + t  - 1];
+      AD<double> epsi0   = vars[epsi_start + t  - 1];
 
       AD<double> delta0  = vars[delta_start + t - 1]; 
-      AD<double> a0      = vars[a_start + t - 1];
+      AD<double> a0      = vars[a_start     + t - 1];
   
       AD<double> f0      = coeffs(0) + coeffs(1) * x0 + coeffs(2) * pow(x0,2) + coeffs(3) * pow(x0,3);
-      AD<double> psides0 = CppAD::atan(coeffs(1)+ 2 * coeffs(2) * x0 + 3 * coeffs(3) * pow(x0,2) );     
-      // Here's `x` to get you started.
-      // The idea here is to constraint this value to be 0.
-      //
-      // NOTE: The use of `AD<doubleo>` and use of `CppAD`!
-      // This is also CppAD can compute derivatives and pass
-      // these to the solver.
 
-      // TODO: Setup the rest of the model constraints
+      AD<double> psides0 = CppAD::atan(coeffs(1) + 2  * coeffs(2) * x0 + 3 * coeffs(3) * pow(x0,2) );     
+      
+      // The idea here is to constrain this values to 0.
+      //
+      // NOTE: The use of `AD<double>` and use of `CppAD`!
+      // CppAD can compute derivatives and pass
+      // the values to the solver.
+
+      // Vehicle Model equations:
+      // x_[t+1] = x[t] + v[t] * cos(psi[t]) * dt
+      // y_[t+1] = y[t] + v[t] * sin(psi[t]) * dt
+      // psi_[t+1] = psi[t] + v[t] / Lf * delta[t] * dt
+      // v_[t+1] = v[t] + a[t] * dt
+      // cte[t+1] = f(x[t]) - y[t] + v[t] * sin(epsi[t]) * dt
+      // epsi[t+1] = psi[t] - psides[t] + v[t] * delta[t] / Lf * dt
+      
+
+      // Model constraints
       fg[1 + x_start + t] = x1 - (x0 + v0 * CppAD::cos(psi0) * dt);
       fg[1 + y_start + t] = y1 - (y0 + v0 * CppAD::sin(psi0) * dt);
 
       //This has to be psi0 - vo/Lf because simulator steer coordinate directions
       fg[1 + psi_start + t] = psi1 - (psi0 - (v0 / Lf ) * delta0 * dt);
-      fg[1 + v_start + t]   = v1   - (v0 + a0 * dt);
-
-      // what is f( x(t) )? --> it's a polyeval at x0
-      // how to we get desired steering angle
+      fg[1 + v_start + t]   = v1   - (v0 + a0 * dt);      
       fg[1 + cte_start + t]  = cte1  - ( y0 - f0 + v0 * CppAD::sin(epsi0) * dt);
       fg[1 + epsi_start + t] = epsi1 - ( psi0 - psides0 + (v0 / Lf) * delta0 * dt  );
     }
@@ -154,7 +160,7 @@ vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
   double cte  = state[4];
   double epsi = state[5];
 
-  // TODO: Set the number of model variables (includes both states and inputs).
+  // Set the number of model variables (includes both states and inputs).
   // For example: If the state is a 4 element vector, the actuators is a 2
   // element vector and there are 10 timesteps. The number of variables is:
   //
@@ -193,7 +199,7 @@ vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
     vars_upperbound[i] = 0.436332;
   }
 
-  // Acceleration/decceleration upper and lower limits.
+  // Acceleration/decceleration upper and lower limits. Put 0 as lower bound because vehicle braking looks weird
   for (int i = a_start; i < n_vars; i++) {
     vars_lowerbound[i] = 0.0;
     vars_upperbound[i] = 1.0;
@@ -245,10 +251,10 @@ vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
   // Change this as you see fit.
   options += "Numeric max_cpu_time          0.8\n";
 
-  // place to return solution
+  // Return solution object
   CppAD::ipopt::solve_result<Dvector> solution;
 
-  // solve the problem
+  // Solve the problem
   CppAD::ipopt::solve<Dvector, FG_eval>(
       options, vars, vars_lowerbound, vars_upperbound, constraints_lowerbound,
       constraints_upperbound, fg_eval, solution);
@@ -260,7 +266,7 @@ vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
   auto cost = solution.obj_value;
   std::cout << cost << std::endl;
 
-  // TODO: Return the first actuator values. The variables can be accessed with
+  // Return actuator values. The variables can be accessed with
   // `solution.x[i]`.
   //
   // {...} is shorthand for creating a vector, so auto x1 = {1.0,2.0}
@@ -270,10 +276,9 @@ vector<double> MPC::Solve(Eigen::VectorXd state, Eigen::VectorXd coeffs) {
 
   vector <double> sol_n;
   for( size_t i = 0; i < N - 1; i ++){
-
     sol_n.push_back(solution.x[delta_start + i]);
     sol_n.push_back(solution.x[a_start     + i]);
   }
 
-  return sol_n; //{solution.x[delta_start],   solution.x[a_start]};
+  return sol_n;
 }

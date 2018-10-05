@@ -99,10 +99,19 @@ int main() {
           vector<double> ptsx_veh;
           vector<double> ptsy_veh;
           
+          /*
+           relativeX = B.x - A.x
+           relativeY = B.y - A.y
+           rotatedX = Cos(-Angle) * relativeX - Sin(-Angle) * relativeY
+           rotatedY = Cos(-Angle) * relativeY + Sin(-Angle) * relativeX
+          */
           double cospsi = cos(-psi);
           double sinpsi = sin(-psi);
 
           for(size_t i=0; i < ptsx.size(); i++){
+              
+              //https://gamedev.stackexchange.com/questions/79765/how-do-i-convert-from-the-global-coordinate-space-to-a-local-space
+              // !!!!
               double pvx = ptsx[i] - px;
               double pvy = ptsy[i] - py;
 
@@ -111,38 +120,25 @@ int main() {
 
               ptsx_veh.push_back( pvx_and_angle );
               ptsy_veh.push_back( pvy_and_angle );
-              // do we need to do something with psi
           }
-
 
           Eigen::VectorXd pts_x(6);
           Eigen::VectorXd pts_y(6);
 
           pts_x << ptsx_veh[0], ptsx_veh[1], ptsx_veh[2], ptsx_veh[3], ptsx_veh[4], ptsx_veh[5];
-          pts_y << ptsy_veh[0], ptsy_veh[1], ptsy_veh[2], ptsy_veh[3], ptsy_veh[4], ptsy_veh[5];
-          
-          /*
-          psi -= PI / 2.0;
-          if      (psi < -.43632){ psi = -.43632;  }
-          else if (psi >  .43632){ psi =  .43632;  }
-          */
-          /*
-          cout << "LENGTH OF ptsx: " << ptsx.size() << endl;
-          cout << "LENGTH OF ptsy: " << ptsy.size() << endl;
-          cout<< "pts_x" << pts_x<<endl;
-          cout<< "pts_y" << pts_y <<endl;
-          */
+          pts_y << ptsy_veh[0], ptsy_veh[1], ptsy_veh[2], ptsy_veh[3], ptsy_veh[4], ptsy_veh[5];        
           
           auto coeffs = polyfit(pts_x, pts_y, 3);
 
-          double cte = polyeval(coeffs, 0);  // px = 0, py = 0
-          double epsi = -atan(coeffs[1]); // p
+          double cte = polyeval(coeffs, 0);   // px = 0, py = 0
+          double epsi = -1 * atan(coeffs[1]); // p
 
          // cout<< "Rudiments" << endl;
           //cout<< cte << "\t" << epsi << "\t" <<coeffs <<endl;
 
          // cout<< "AFTER" <<endl;
           Eigen::VectorXd state(6);
+          //vehicle coordinates so 
           state << 0,0,0, v, cte, epsi;
 
           /*
@@ -157,28 +153,13 @@ int main() {
           double throttle_value = vars[1];
 
           json msgJson;
-          // NOTE: Remember to divide by deg2rad(25) before you send the steering value back.
-          // Otherwise the values will be in between [-deg2rad(25), deg2rad(25] instead of [-1, 1].
+          
           msgJson["steering_angle"] = steer_value;
           msgJson["throttle"] = throttle_value;
 
           //Display the MPC predicted trajectory 
           vector<double> mpc_x_vals;
-          vector<double> mpc_y_vals;
-
-          //.. add (x,y) points to list here, points are in reference to the vehicle's coordinate system
-          // the points in the simulator are connected by a Green line
-          //cout<< "SIZE OF VARS " << vars.size() << endl;
-          
-          for (int i = 2; i < vars.size(); i ++) {
-            if (i%2 == 0) {
-              mpc_x_vals.push_back(vars[i]);
-            }
-            else {
-              mpc_y_vals.push_back(vars[i]);
-            }
-          }
-
+          vector<double> mpc_y_vals;        
           msgJson["mpc_x"] = mpc_x_vals;
           msgJson["mpc_y"] = mpc_y_vals;
 
@@ -186,17 +167,8 @@ int main() {
           vector<double> next_x_vals;
           vector<double> next_y_vals;
 
-          //.. add (x,y) points to list here, points are in reference to the vehicle's coordinate system
-          // the points in the simulator are connected by a Yellow line
-
-          for (double i = 0; i < 25; i += 3){
-            next_x_vals.push_back(i);
-            next_y_vals.push_back(polyeval(coeffs, i));
-          }
-
           msgJson["next_x"] = next_x_vals;
           msgJson["next_y"] = next_y_vals;
-
 
           auto msg = "42[\"steer\"," + msgJson.dump() + "]";
           std::cout << msg << std::endl;
