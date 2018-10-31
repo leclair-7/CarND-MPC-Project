@@ -8,35 +8,12 @@
 # CarND-Controls-MPC
 Self-Driving Car Engineer Nanodegree Program
 
-## The Model
-The state of the car is comprised of x (coordinate), y (coordinate), psi (heading), v (velocity). The cross track error (distance from the car to the center of the lane) and the psi error (heading direction error) was calculated and appended to the state. The kinematic equations were used to predict the car's state at the next timestep.
+---
+## Purpose
 
-
-<div align="left">    Updates of x, y, psi, v:   </div>
-<div align="left"> ![global_kinematic][image1] </div>
-
-<div align="left"> Updating the cross-track error:</div>
-<div align="left"> ![Cross Track Error][image2]</div>
-
-<div align="left"> Updating the heading error:</div>
-<div align="left"> ![Orientation Error][image3]</div>
-
-## Timestep Length and Elapsed Duration (N & dt)
-N = 15 and dt = .05 were chosen because a .75 sec horizon seems sufficient calculations would be faster than the 100ms latency. dt values of .01, .009, .008, .1 were unsuccessfully tried. After many experiments of parameter tuning on the cost function on the dt values, the coordinates inputted into the model were converted to vehicle coordinates. The 100ms delay was commented out, and working parameters were found quickly. After uncommenting the latency the parameter tuning was easy due to the intuition gained from the failed experiments.
-
-
-## Polynomial Fitting and MPC Preprocessing
-Waypoints were transformed to transformed to vehicle coordinates before the polyfit coefficients were calculated.
-
-## Model Predictive Control with Latency
-To deal with the 100ms latency, weight parameters for each error value inputted to the cost function were used. These were found with trial and error. Most of the penalty was from the steering angle.
-
-
-
-
+To use model predictive control to steer a car around a track at normal driving speeds. This is of course, in a simulator. We get points on our trajectory, curve fit, use an optimizer library, and repeat each time step.
 
 ---
-
 ## Dependencies
 
 * cmake >= 3.5
@@ -71,6 +48,35 @@ To deal with the 100ms latency, weight parameters for each error value inputted 
 2. Make a build directory: `mkdir build && cd build`
 3. Compile: `cmake .. && make`
 4. Run it: `./mpc`.
+
+## Project Details for the Class and Beyond Follow:
+## The Model
+The state of the car is comprised of x (coordinate), y (coordinate), psi (heading), v (velocity). The cross track error (distance from the car to the center of the lane) and the psi error (heading direction error) was calculated and appended to the state. The kinematic equations were used to predict the car's state at the next timestep.
+
+
+<div align="left">    Updates of x, y, psi, v:   </div>
+<div align="left"> ![global_kinematic][image1] </div>
+
+<div align="left"> Updating the cross-track error:</div>
+<div align="left"> ![Cross Track Error][image2]</div>
+
+<div align="left"> Updating the heading error:</div>
+<div align="left"> ![Orientation Error][image3]</div>
+
+## Timestep Length and Elapsed Duration (N & dt)
+N = 15 and dt = .05 were chosen because a .75 sec horizon seems sufficient calculations would be faster than the 100ms latency. dt values of .01, .009, .008, .1 were unsuccessfully tried. After many experiments of parameter tuning on the cost function on the dt values, the coordinates inputted into the model were converted to vehicle coordinates. The 100ms delay was commented out, and working parameters were found quickly. After uncommenting the latency the parameter tuning was easy due to the intuition gained from the failed experiments.
+
+
+## Polynomial Fitting and MPC Preprocessing
+Waypoints were transformed to transformed to vehicle coordinates before the polyfit coefficients were calculated.
+
+## Model Predictive Control with Latency
+To deal with the 100ms latency, weight parameters for each error value inputted to the cost function were used. These were found with trial and error. Most of the penalty was from the steering angle.
+
+
+
+
+
 
 ## Tips
 
